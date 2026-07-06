@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "fusion-workflow",
+  "displayName": "Fusion Workflow",
+  "version": "0.1.0",
+  "description": "GPT-5.5 High orchestrates a cost-aware pool of Claude and OpenCode Go implementation agents inside Claude Code.",
+  "author": {
+    "name": "pikalover6",
+    "url": "https://github.com/pikalover6"
+  },
+  "repository": "https://github.com/pikalover6/fusion-workflow",
+  "keywords": ["claude-code", "codex", "opencode", "agents", "routing", "orchestration", "workflow"]
+}
