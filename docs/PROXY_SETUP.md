@@ -30,6 +30,35 @@ Fusion does not depend on CCR specifically. Any gateway is fine if it:
 3. can translate each route to the upstream provider protocol
 4. supports the authentication method you are authorized to use for that provider
 
+## Easiest setup path
+
+Run:
+
+```bash
+fusion-flow wizard
+```
+
+The wizard:
+
+- checks whether a CCR executable is already available
+- prints the official CCR release page if CCR is not installed yet
+- configures Fusion's local gateway URL, defaulting to `http://127.0.0.1:8080`
+- optionally records provider base URLs
+- generates a complete gateway profile bundle
+
+Generated files:
+
+```text
+~/.config/fusion-workflow/gateway-profile/fusion-gateway-profile.json
+~/.config/fusion-workflow/gateway-profile/fusion-ccr-aliases.md
+~/.config/fusion-workflow/gateway-profile/CCR_QUICKSTART.md
+~/.config/fusion-workflow/gateway-profile/.env.example
+```
+
+On Windows, these live under `%APPDATA%\fusion-workflow\gateway-profile`.
+
+Use `fusion-ccr-aliases.md` while creating routing rules in CCR. `fusion-gateway-profile.json` is the stable machine-readable profile for future import tooling.
+
 ## 1. Install and start the gateway
 
 Install your gateway and start its local server. CCR listens on `http://127.0.0.1:8080` by default unless you change the port.
@@ -72,7 +101,7 @@ The gateway may represent effort as separate model IDs, request rewrites, provid
 
 ## 3. Add the exact Fusion aliases
 
-Create exact model routing rules or request rewrites for every row below.
+The wizard autofills these rows in `fusion-ccr-aliases.md`.
 
 | Incoming alias | Provider | Conceptual upstream target |
 |---|---|---|
@@ -86,7 +115,7 @@ Create exact model routing rules or request rewrites for every row below.
 | `fusion-sonnet-5-low` | Claude | Sonnet 5, Low |
 | `fusion-sonnet-5-medium` | Claude | Sonnet 5, Medium |
 
-The machine-readable contract is `config/model-aliases.json`.
+The source alias contract is `config/model-aliases.json`.
 
 ### CCR routing shape
 
@@ -98,11 +127,17 @@ In CCR, the conceptual setup is:
 4. send it to the intended provider/model
 5. add effort/request rewriting where needed for GPT High and Sonnet Low/Medium
 
-The exact UI labels can change between CCR releases, so treat the alias table above as the source of truth rather than screenshots.
+The exact UI labels can change between CCR releases, so treat the generated alias files as the source of truth rather than screenshots.
 
 ## 4. Configure the Fusion launcher
 
-Run:
+Prefer:
+
+```bash
+fusion-flow wizard
+```
+
+For the old manual path, use:
 
 ```bash
 fusion-flow setup
@@ -146,8 +181,10 @@ fusion-flow doctor
 - Claude Code
 - Git
 - plugin files
+- gateway wizard file
 - alias contract
 - Fusion config
+- generated gateway profile directory, when present
 - TCP reachability of the gateway
 
 It intentionally does not send nine probe prompts. Automatic alias probing would consume real quota.
