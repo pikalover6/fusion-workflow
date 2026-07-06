@@ -1,6 +1,6 @@
 # Fusion Workflow
 
-A multi-model Claude Code workflow where GPT-5.5 High manages the project and chooses the cheapest implementation agent likely to reach a verified result efficiently.
+Fusion Workflow is a multi-model Claude Code workflow where GPT-5.5 High leads the project and routes implementation work to the cheapest model likely to reach a verified result.
 
 ```text
 GPT-5.5 High — technical lead / router
@@ -14,39 +14,20 @@ GPT-5.5 High — technical lead / router
 └── Sonnet 5 Medium — high-risk judgment-heavy implementation
 ```
 
-Everything appears inside Claude Code. A local Anthropic-compatible gateway maps Fusion's fixed model aliases to Codex, OpenCode Go, and Claude.
+The core rule is simple:
 
-The core rule:
-
-> Route by expected total cost to a verified result, not by vague task difficulty and not by first-attempt price.
-
-A hard parser with exhaustive tests may go to DeepSeek Flash. A small authentication change with weak verification may start on Sonnet.
-
-## What the manager does
-
-GPT-5.5 High:
-
-- inspects the repository and resolves design ambiguity
-- turns broad requests into explicit implementation contracts
-- scores specification ambiguity, verification strength, coupling, blast radius, autonomy horizon, and context burden
-- chooses a worker using task shape, relative scarcity, and learned history
-- can race the two abundant models on low-risk objectively verifiable tasks
-- reviews worker commits before integration
-- repairs or escalates when the expected future value of the current route turns negative
-- learns aggregate per-model outcomes in persistent agent memory
-
-The manager does not normally write substantial features itself.
+> Route by expected total cost to a verified result, not by vague task difficulty or first-attempt price.
 
 ## Requirements
 
 - Claude Code 2.1.200 or newer
 - Python 3.9 or newer
 - Git projects for isolated implementation worktrees
-- an Anthropic-compatible gateway that routes the model aliases in `config/model-aliases.json`
+- Authorized access to the providers/models you configure
 
-For the first experiment, [Claude Code Router](https://github.com/musistudio/claude-code-router) is the recommended gateway. The wizard generates a CCR-oriented alias/profile bundle automatically.
+## Install
 
-## Install on macOS / Linux
+### macOS / Linux
 
 ```bash
 mkdir -p ~/.local/share ~/.local/bin
@@ -55,21 +36,13 @@ chmod +x ~/.local/share/fusion-workflow/bin/fusion-flow
 ln -sf ~/.local/share/fusion-workflow/bin/fusion-flow ~/.local/bin/fusion-flow
 ```
 
-Make sure `~/.local/bin` is on your `PATH`. For zsh:
-
-```bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-exec zsh
-```
-
-Then:
+Make sure `~/.local/bin` is on your `PATH`, then run:
 
 ```bash
 fusion-flow wizard
-fusion-flow doctor
 ```
 
-## Install on Windows
+### Windows
 
 Open PowerShell:
 
@@ -79,63 +52,81 @@ git clone https://github.com/pikalover6/fusion-workflow.git "$HOME\.local\share\
 Copy-Item "$HOME\.local\share\fusion-workflow\bin\fusion-flow.cmd" "$HOME\.local\bin\fusion-flow.cmd" -Force
 ```
 
-Add `~\.local\bin` to your user `PATH` if needed:
-
-```powershell
-$bin = "$HOME\.local\bin"
-$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if (($userPath -split ';') -notcontains $bin) {
-  [Environment]::SetEnvironmentVariable("Path", "$userPath;$bin", "User")
-}
-$env:Path += ";$bin"
-```
-
-Then:
+Add `~\.local\bin` to your user `PATH`, then run:
 
 ```powershell
 fusion-flow wizard
-fusion-flow doctor
 ```
 
-## First-run wizard
+## Setup autopilot
 
-Run:
+`fusion-flow wizard` now tries to do the whole first-run setup for you.
 
-```bash
-fusion-flow wizard
-```
+It:
 
-The wizard:
+1. checks whether the configured gateway is already running and advertises all nine Fusion aliases
+2. reuses that gateway immediately when it is already compatible
+3. reads provider URLs and credentials from environment variables or a previous wizard run
+4. queries provider model catalogs when possible and matches conceptual Fusion targets to real provider model IDs
+5. generates all nine alias routes as a LiteLLM config
+6. installs LiteLLM in an isolated Fusion virtual environment when needed
+7. starts the local router automatically, choosing a fallback port when the preferred local port is occupied
+8. verifies all nine aliases through the model catalog without sending paid model prompts
 
-- checks whether a Claude Code Router executable is already available
-- prints the official CCR release page if it is not installed yet
-- asks for the local Anthropic-compatible gateway URL, defaulting to `http://127.0.0.1:8080`
-- optionally records provider base URLs for GPT/Codex, OpenCode Go, and Claude
-- writes Fusion's local launcher config
-- generates a complete gateway profile bundle under your Fusion config directory
+The normal experience is one command, not nine manual routing rules.
 
-Generated files:
+### Provider discovery
+
+The wizard reuses these variables when present:
+
+| Provider | Base URL | API key |
+|---|---|---|
+| GPT/OpenAI-compatible | `FUSION_GPT_BASE_URL`, `OPENAI_BASE_URL`, `OPENAI_API_BASE` | `FUSION_GPT_API_KEY`, `OPENAI_API_KEY` |
+| OpenCode Go | `FUSION_OPENCODE_GO_BASE_URL` | `FUSION_OPENCODE_GO_API_KEY` |
+| Claude/Anthropic-compatible | `FUSION_CLAUDE_BASE_URL` | `FUSION_CLAUDE_API_KEY`, `ANTHROPIC_API_KEY` |
+
+When an interactive run still needs a value, the wizard asks only for the missing setting. Reruns reuse the previous generated profile and private provider secret file.
+
+### Generated managed-router files
+
+On macOS/Linux:
 
 ```text
-~/.config/fusion-workflow/gateway-profile/fusion-gateway-profile.json
-~/.config/fusion-workflow/gateway-profile/fusion-ccr-aliases.md
-~/.config/fusion-workflow/gateway-profile/CCR_QUICKSTART.md
-~/.config/fusion-workflow/gateway-profile/.env.example
+~/.config/fusion-workflow/gateway-profile/
+├── fusion-gateway-profile.json
+├── litellm-config.yaml
+├── provider-secrets.json
+├── README.md
+├── router.pid        # after start
+└── router.log        # after start
 ```
 
-On Windows these live under `%APPDATA%\fusion-workflow\gateway-profile`.
+On Windows, the same directory lives under `%APPDATA%\fusion-workflow`.
 
-`fusion-ccr-aliases.md` is the easiest file to keep open while creating the CCR routing rules. `fusion-gateway-profile.json` is a stable machine-readable profile for future import tooling.
+Provider credentials are stored in `provider-secrets.json`; generated YAML contains environment-variable references instead of raw provider keys. On POSIX systems the private JSON file is written with mode `0600`.
 
-For noninteractive setup:
+### Generate without installing or starting
 
 ```bash
 fusion-flow wizard --non-interactive --skip-install
 ```
 
-## Configure the proxy
+This writes the full router bundle and launcher config but does not install or start LiteLLM.
 
-Fusion uses fixed incoming model names so the plugin never needs provider credentials or provider-specific model IDs.
+### Existing or custom gateway
+
+Fusion is still gateway-agnostic. The wizard reuses any already-running gateway that advertises the exact nine aliases. For an externally managed remote gateway, use:
+
+```bash
+fusion-flow setup --base-url https://your-gateway.example
+fusion-flow doctor
+```
+
+See `docs/PROXY_SETUP.md` for the routing contract and manual/external gateway path.
+
+## Model aliases
+
+Fusion sends these stable incoming names to the gateway:
 
 ```text
 fusion-gpt-5.5-high
@@ -149,11 +140,19 @@ fusion-sonnet-5-low
 fusion-sonnet-5-medium
 ```
 
-The wizard autofills those aliases in the generated gateway profile. Map those aliases in your gateway, start it, then run `fusion-flow doctor`. Detailed instructions and the upstream mapping table are in [docs/PROXY_SETUP.md](docs/PROXY_SETUP.md).
+The managed router maps them automatically from `config/model-aliases.json`.
+
+## Verify
+
+```bash
+fusion-flow doctor
+```
+
+`doctor` checks Python, Claude Code, Git, plugin files, the alias contract, saved Fusion config, generated profile directory, gateway reachability, and launcher authentication settings.
 
 ## Use
 
-From any project:
+From any Git project:
 
 ```bash
 cd ~/code/my-project
@@ -166,7 +165,7 @@ That launches Claude Code with:
 - `fusion-workflow:orchestrator` as the main agent
 - GPT-5.5 High as the main model alias
 - built-in Explore/Plan agents disabled so they cannot silently consume orchestrator quota
-- implementation workers isolated in temporary git worktrees
+- implementation workers isolated in temporary Git worktrees
 
 Plain Claude Code remains unchanged:
 
@@ -174,74 +173,28 @@ Plain Claude Code remains unchanged:
 claude
 ```
 
-## Example behavior
-
-Request:
-
-```text
-Add project-level notification preferences.
-```
-
-A typical run might be:
-
-```text
-GPT-5.5 inspects existing organization preferences
-        ↓
-creates a bounded contract with acceptance tests
-        ↓
-Qwen3.7 Plus implements in an isolated worktree
-        ↓
-returns a commit
-        ↓
-GPT-5.5 inspects and cherry-picks it
-        ↓
-runs verification in the main checkout
-```
-
-For a strongly verified algorithmic task:
-
-```text
-DeepSeek Flash ──┐
-                 ├── same contract, isolated worktrees
-MiMo-V2.5 ───────┘
-        ↓
-GPT-5.5 selects the better verified commit
-```
-
-For a high-risk weakly tested authentication change, the manager should skip the cheap ladder and use Sonnet.
-
-## Routing policy
-
-The detailed policy is in [docs/ROUTING.md](docs/ROUTING.md). The actual technical routing instructions live in `agents/orchestrator.md`.
-
-The active OpenCode roster is intentionally smaller than the full Go catalog. Older and overlapping models are benched until your own results show a useful niche:
-
-- GLM-5.1
-- Kimi K2.6
-- MiMo-V2.5-Pro
-- MiniMax M2.7
-- Qwen3.7 Max
-- Qwen3.6 Plus
-- DeepSeek V4 Pro
-
-This keeps routing data dense enough to learn from.
-
-## Useful commands
-
-```bash
-fusion-flow wizard   # configure Fusion and generate gateway alias/profile files
-fusion-flow setup    # configure only the local gateway URL/auth
-fusion-flow doctor   # check Claude Code, config, gateway, and aliases
-fusion-flow models   # print the alias map
-fusion-flow config   # show the active launcher config
-fusion-flow          # start the workflow
-```
-
-Any other arguments are passed to Claude Code:
+Any other arguments are passed through:
 
 ```bash
 fusion-flow --resume
 fusion-flow --permission-mode acceptEdits
+```
+
+## Routing policy
+
+The manager inspects the repository, resolves ambiguity, creates explicit implementation contracts, chooses workers from task shape and expected total verification cost, reviews commits before integration, repairs or escalates when needed, and learns aggregate model outcomes over time.
+
+Detailed policy lives in `docs/ROUTING.md`; technical orchestrator instructions live in `agents/orchestrator.md`.
+
+## Useful commands
+
+```bash
+fusion-flow wizard   # automatic first-run setup and managed router
+fusion-flow setup    # point Fusion at an externally managed gateway
+fusion-flow doctor   # check prerequisites and gateway reachability
+fusion-flow models   # print the alias map
+fusion-flow config   # show sanitized active configuration
+fusion-flow          # start the workflow
 ```
 
 ## Update
@@ -283,9 +236,8 @@ Remove-Item "$env:APPDATA\fusion-workflow" -Recurse -Force -ErrorAction Silently
 ```bash
 git clone https://github.com/pikalover6/fusion-workflow.git
 cd fusion-workflow
-python3 bin/fusion-flow.py wizard
-python3 bin/fusion-flow.py doctor
-python3 bin/fusion-flow.py
+python3 bin/fusion-flow.py wizard --non-interactive --skip-install
+python3 -m unittest discover -s tests -v
 ```
 
 The plugin also works directly with:
