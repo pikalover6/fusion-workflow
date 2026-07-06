@@ -1,0 +1,50 @@
+{
+  "fusion-gpt-5.5-high": {
+    "provider": "Codex / ChatGPT",
+    "upstream": "GPT-5.5",
+    "mode": "high",
+    "role": "orchestrator"
+  },
+  "fusion-deepseek-v4-flash": {
+    "provider": "OpenCode Go",
+    "upstream": "DeepSeek V4 Flash",
+    "role": "abundant bounded implementer"
+  },
+  "fusion-mimo-v2.5": {
+    "provider": "OpenCode Go",
+    "upstream": "MiMo-V2.5",
+    "role": "abundant alternate implementer and race challenger"
+  },
+  "fusion-qwen3.7-plus": {
+    "provider": "OpenCode Go",
+    "upstream": "Qwen3.7 Plus",
+    "role": "default general implementation workhorse"
+  },
+  "fusion-minimax-m3": {
+    "provider": "OpenCode Go",
+    "upstream": "MiniMax M3",
+    "role": "large-context and broad-repository implementer"
+  },
+  "fusion-kimi-k2.7-code": {
+    "provider": "OpenCode Go",
+    "upstream": "Kimi K2.7 Code",
+    "role": "long-horizon autonomous implementer"
+  },
+  "fusion-glm-5.2": {
+    "provider": "OpenCode Go",
+    "upstream": "GLM-5.2",
+    "role": "terminal-heavy debugging and environment work"
+  },
+  "fusion-sonnet-5-low": {
+    "provider": "Claude",
+    "upstream": "Sonnet 5",
+    "mode": "low",
+    "role": "high-confidence premium implementer"
+  },
+  "fusion-sonnet-5-medium": {
+    "provider": "Claude",
+    "upstream": "Sonnet 5",
+    "mode": "medium",
+    "role": "high-risk or weak-oracle premium implementer"
+  }
+}
