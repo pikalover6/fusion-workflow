@@ -1,6 +1,3 @@
 {
-  "agent": "orchestrator",
-  "worktree": {
-    "baseRef": "head"
-  }
+  "agent": "orchestrator"
 }
