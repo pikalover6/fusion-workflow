@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  launcher:
+  linux:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -24,3 +24,26 @@ jobs:
           python -m json.tool config/model-aliases.json >/dev/null
       - name: Run tests
         run: python -m unittest discover -s tests -v
+      - name: Exercise documented symlink install
+        run: |
+          chmod +x bin/fusion-flow
+          ln -s "$PWD/bin/fusion-flow" /tmp/fusion-flow
+          /tmp/fusion-flow models >/dev/null
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile launcher
+        run: python -m py_compile bin/fusion-flow.py
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: Exercise documented copied launcher install
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force "$HOME\.local\share" | Out-Null
+          Copy-Item "$PWD" "$HOME\.local\share\fusion-workflow" -Recurse
+          cmd /c "$PWD\bin\fusion-flow.cmd models"
