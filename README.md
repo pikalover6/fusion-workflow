@@ -44,7 +44,7 @@ The manager does not normally write substantial features itself.
 - Git projects for isolated implementation worktrees
 - an Anthropic-compatible gateway that routes the model aliases in `config/model-aliases.json`
 
-For the first experiment, [Claude Code Router](https://github.com/musistudio/claude-code-router) is the easiest fit. See [Proxy setup](docs/PROXY_SETUP.md).
+For the first experiment, [Claude Code Router](https://github.com/musistudio/claude-code-router) is the recommended gateway. The wizard generates a CCR-oriented alias/profile bundle automatically.
 
 ## Install on macOS / Linux
 
@@ -65,7 +65,7 @@ exec zsh
 Then:
 
 ```bash
-fusion-flow setup
+fusion-flow wizard
 fusion-flow doctor
 ```
 
@@ -93,8 +93,44 @@ $env:Path += ";$bin"
 Then:
 
 ```powershell
-fusion-flow setup
+fusion-flow wizard
 fusion-flow doctor
+```
+
+## First-run wizard
+
+Run:
+
+```bash
+fusion-flow wizard
+```
+
+The wizard:
+
+- checks whether a Claude Code Router executable is already available
+- prints the official CCR release page if it is not installed yet
+- asks for the local Anthropic-compatible gateway URL, defaulting to `http://127.0.0.1:8080`
+- optionally records provider base URLs for GPT/Codex, OpenCode Go, and Claude
+- writes Fusion's local launcher config
+- generates a complete gateway profile bundle under your Fusion config directory
+
+Generated files:
+
+```text
+~/.config/fusion-workflow/gateway-profile/fusion-gateway-profile.json
+~/.config/fusion-workflow/gateway-profile/fusion-ccr-aliases.md
+~/.config/fusion-workflow/gateway-profile/CCR_QUICKSTART.md
+~/.config/fusion-workflow/gateway-profile/.env.example
+```
+
+On Windows these live under `%APPDATA%\fusion-workflow\gateway-profile`.
+
+`fusion-ccr-aliases.md` is the easiest file to keep open while creating the CCR routing rules. `fusion-gateway-profile.json` is a stable machine-readable profile for future import tooling.
+
+For noninteractive setup:
+
+```bash
+fusion-flow wizard --non-interactive --skip-install
 ```
 
 ## Configure the proxy
@@ -113,7 +149,7 @@ fusion-sonnet-5-low
 fusion-sonnet-5-medium
 ```
 
-Map those aliases in your gateway, start it, then run `fusion-flow setup`. Detailed instructions and the upstream mapping table are in [docs/PROXY_SETUP.md](docs/PROXY_SETUP.md).
+The wizard autofills those aliases in the generated gateway profile. Map those aliases in your gateway, start it, then run `fusion-flow doctor`. Detailed instructions and the upstream mapping table are in [docs/PROXY_SETUP.md](docs/PROXY_SETUP.md).
 
 ## Use
 
@@ -193,7 +229,8 @@ This keeps routing data dense enough to learn from.
 ## Useful commands
 
 ```bash
-fusion-flow setup    # configure the local gateway
+fusion-flow wizard   # configure Fusion and generate gateway alias/profile files
+fusion-flow setup    # configure only the local gateway URL/auth
 fusion-flow doctor   # check Claude Code, config, gateway, and aliases
 fusion-flow models   # print the alias map
 fusion-flow config   # show the active launcher config
@@ -246,7 +283,7 @@ Remove-Item "$env:APPDATA\fusion-workflow" -Recurse -Force -ErrorAction Silently
 ```bash
 git clone https://github.com/pikalover6/fusion-workflow.git
 cd fusion-workflow
-python3 bin/fusion-flow.py setup
+python3 bin/fusion-flow.py wizard
 python3 bin/fusion-flow.py doctor
 python3 bin/fusion-flow.py
 ```
