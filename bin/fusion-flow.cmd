@@ -1,7 +1,8 @@
 @echo off
+set "FUSION_SCRIPT=%USERPROFILE%\.local\share\fusion-workflow\bin\fusion-flow.py"
 where py >nul 2>nul
 if %ERRORLEVEL%==0 (
-  py -3 "%~dp0fusion-flow.py" %*
+  py -3 "%FUSION_SCRIPT%" %*
 ) else (
-  python "%~dp0fusion-flow.py" %*
+  python "%FUSION_SCRIPT%" %*
 )
