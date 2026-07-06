@@ -103,10 +103,12 @@ class LauncherTests(unittest.TestCase):
             profile_dir = output_root / "gateway-profile"
             profile = fusion_flow.load_json(profile_dir / "fusion-gateway-profile.json")
             self.assertEqual(len(profile["routes"]), 9)
-            self.assertTrue((profile_dir / "fusion-ccr-aliases.md").is_file())
-            self.assertTrue((profile_dir / "CCR_QUICKSTART.md").is_file())
+            self.assertTrue((profile_dir / "litellm-config.yaml").is_file())
+            self.assertTrue((profile_dir / "provider-secrets.json").is_file())
+            self.assertTrue((profile_dir / "README.md").is_file())
             self.assertEqual(saved["base_url"], "http://127.0.0.1:8080")
             self.assertEqual(saved["gateway_profile_dir"], str(profile_dir))
+            self.assertEqual(saved["router"], "litellm")
 
     def test_unix_wrapper_resolves_installed_symlink(self) -> None:
         wrapper = (ROOT / "bin" / "fusion-flow").read_text(encoding="utf-8")
@@ -115,7 +117,7 @@ class LauncherTests(unittest.TestCase):
 
     def test_windows_wrapper_targets_share_checkout(self) -> None:
         wrapper = (ROOT / "bin" / "fusion-flow.cmd").read_text(encoding="utf-8")
-        self.assertIn(".local\share\fusion-workflow\bin\fusion-flow.py", wrapper)
+        self.assertIn(r".local\share\fusion-workflow\bin\fusion-flow.py", wrapper)
 
 
 if __name__ == "__main__":

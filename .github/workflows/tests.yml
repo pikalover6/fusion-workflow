@@ -15,8 +15,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Compile launcher
-        run: python -m py_compile bin/fusion-flow.py
+      - name: Compile launchers
+        run: |
+          python -m py_compile bin/fusion-flow.py
+          python -m py_compile bin/fusion_gateway_wizard.py
       - name: Validate JSON
         run: |
           python -m json.tool .claude-plugin/plugin.json >/dev/null
@@ -37,8 +39,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Compile launcher
-        run: python -m py_compile bin/fusion-flow.py
+      - name: Compile launchers
+        run: |
+          python -m py_compile bin/fusion-flow.py
+          python -m py_compile bin/fusion_gateway_wizard.py
       - name: Run tests
         run: python -m unittest discover -s tests -v
       - name: Exercise documented copied launcher install
