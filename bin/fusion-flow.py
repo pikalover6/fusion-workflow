@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -18,6 +19,7 @@ from urllib.parse import urlparse
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ALIASES_FILE = REPO_ROOT / "config" / "model-aliases.json"
 PLUGIN_MANIFEST = REPO_ROOT / ".claude-plugin" / "plugin.json"
+WIZARD_FILE = REPO_ROOT / "bin" / "fusion_gateway_wizard.py"
 DEFAULT_BASE_URL = "http://127.0.0.1:8080"
 MAIN_MODEL = "fusion-gpt-5.5-high"
 
@@ -125,6 +127,7 @@ def command_setup(args: argparse.Namespace) -> int:
         credential = previous_credential
 
     config = {
+        **current,
         "base_url": base_url,
         "auth_mode": auth_mode,
         "credential": credential,
@@ -140,6 +143,27 @@ def command_setup(args: argparse.Namespace) -> int:
     print("  3. Run `fusion-flow doctor`.")
     print("  4. Run `fusion-flow` inside a git project.")
     return 0
+
+
+def command_wizard(args: argparse.Namespace) -> int:
+    if not WIZARD_FILE.is_file():
+        print(f"Wizard file is missing: {WIZARD_FILE}", file=sys.stderr)
+        return 1
+    spec = importlib.util.spec_from_file_location("fusion_gateway_wizard", WIZARD_FILE)
+    if spec is None or spec.loader is None:
+        print(f"Could not load wizard module: {WIZARD_FILE}", file=sys.stderr)
+        return 1
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    aliases = load_json(ALIASES_FILE)
+    return module.run_gateway_wizard(
+        aliases=aliases,
+        config_root=config_dir(),
+        save_fusion_config=save_config,
+        non_interactive=args.non_interactive,
+        skip_install=args.skip_install,
+        gateway_url=args.base_url or DEFAULT_BASE_URL,
+    )
 
 
 def check(label: str, ok: bool, detail: str) -> bool:
@@ -184,6 +208,9 @@ def command_doctor(_: argparse.Namespace) -> int:
     if not check("Plugin manifest", PLUGIN_MANIFEST.is_file(), str(PLUGIN_MANIFEST)):
         failures += 1
 
+    if not check("Gateway wizard", WIZARD_FILE.is_file(), str(WIZARD_FILE)):
+        failures += 1
+
     try:
         aliases = load_json(ALIASES_FILE)
         aliases_ok = len(aliases) == 9
@@ -194,13 +221,17 @@ def command_doctor(_: argparse.Namespace) -> int:
         failures += 1
 
     if not CONFIG_FILE.is_file():
-        check("Fusion config", False, f"missing {CONFIG_FILE}; run `fusion-flow setup`")
+        check("Fusion config", False, f"missing {CONFIG_FILE}; run `fusion-flow wizard`")
         failures += 1
     else:
         try:
             runtime = resolve_runtime_config()
+            config = load_config()
             if not check("Fusion config", bool(runtime["base_url"]), str(CONFIG_FILE)):
                 failures += 1
+            profile_dir = str(config.get("gateway_profile_dir") or "")
+            if profile_dir:
+                check("Gateway profile", Path(profile_dir).is_dir(), profile_dir)
             if runtime["base_url"]:
                 reachable, detail = gateway_reachable(runtime["base_url"])
                 if not check("Gateway", reachable, detail):
@@ -234,6 +265,7 @@ def command_models(_: argparse.Namespace) -> int:
 
 def command_config(_: argparse.Namespace) -> int:
     runtime = resolve_runtime_config()
+    config = load_config()
     printable = {
         "config_file": str(CONFIG_FILE),
         "plugin_dir": str(REPO_ROOT),
@@ -241,6 +273,7 @@ def command_config(_: argparse.Namespace) -> int:
         "base_url": runtime["base_url"] or "<not configured>",
         "auth_mode": runtime["auth_mode"],
         "credential": mask_secret(runtime["credential"]),
+        "gateway_profile_dir": config.get("gateway_profile_dir", "<not generated>"),
     }
     print(json.dumps(printable, indent=2))
     return 0
@@ -249,7 +282,7 @@ def command_config(_: argparse.Namespace) -> int:
 def launch_environment() -> dict[str, str]:
     runtime = resolve_runtime_config()
     if not runtime["base_url"]:
-        raise RuntimeError(f"Fusion is not configured. Run `fusion-flow setup` first. Expected config: {CONFIG_FILE}")
+        raise RuntimeError(f"Fusion is not configured. Run `fusion-flow wizard` first. Expected config: {CONFIG_FILE}")
 
     env = os.environ.copy()
     env["ANTHROPIC_BASE_URL"] = runtime["base_url"]
@@ -304,7 +337,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    setup = subparsers.add_parser("setup", help="configure the local gateway")
+    wizard = subparsers.add_parser("wizard", help="configure Fusion and generate a gateway alias profile")
+    wizard.add_argument("--base-url", help="local Anthropic-compatible gateway URL")
+    wizard.add_argument("--non-interactive", action="store_true", help="accept defaults and write files without prompts")
+    wizard.add_argument("--skip-install", action="store_true", help="skip gateway detection/install guidance")
+
+    setup = subparsers.add_parser("setup", help="configure only the local gateway URL/auth")
     setup.add_argument("--base-url", help="Anthropic-compatible gateway URL")
     setup.add_argument("--auth-mode", choices=["api_key", "auth_token", "none"])
     setup.add_argument("--token", help="gateway credential; prefer the interactive prompt to avoid shell history")
@@ -317,11 +355,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    commands = {"setup", "doctor", "models", "config"}
+    commands = {"wizard", "setup", "doctor", "models", "config"}
 
     if argv and argv[0] in commands:
         parser = build_parser()
         args = parser.parse_args(argv)
+        if args.command == "wizard":
+            return command_wizard(args)
         if args.command == "setup":
             return command_setup(args)
         if args.command == "doctor":
