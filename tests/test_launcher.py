@@ -81,6 +81,15 @@ class LauncherTests(unittest.TestCase):
                 self.assertEqual(environment["ANTHROPIC_AUTH_TOKEN"], "token-value")
                 self.assertNotIn("ANTHROPIC_API_KEY", environment)
 
+    def test_unix_wrapper_resolves_installed_symlink(self) -> None:
+        wrapper = (ROOT / "bin" / "fusion-flow").read_text(encoding="utf-8")
+        self.assertIn("readlink", wrapper)
+        self.assertIn("fusion-flow.py", wrapper)
+
+    def test_windows_wrapper_targets_share_checkout(self) -> None:
+        wrapper = (ROOT / "bin" / "fusion-flow.cmd").read_text(encoding="utf-8")
+        self.assertIn(".local\\share\\fusion-workflow\\bin\\fusion-flow.py", wrapper)
+
 
 if __name__ == "__main__":
     unittest.main()
